@@ -1,4 +1,4 @@
-package com.nipuna.demo.service;
+package com.nipuna.demo.service.jwt;
 
 import com.nipuna.demo.security.UserPrincipal;
 import io.jsonwebtoken.*;

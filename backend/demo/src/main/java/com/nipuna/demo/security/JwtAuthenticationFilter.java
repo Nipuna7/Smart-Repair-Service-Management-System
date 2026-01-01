@@ -1,7 +1,7 @@
 package com.nipuna.demo.security;
 
-import com.nipuna.demo.service.JwtService;
-import com.nipuna.demo.service.MyUserDetailsService;
+import com.nipuna.demo.service.jwt.JwtService;
+import com.nipuna.demo.service.auth.MyUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

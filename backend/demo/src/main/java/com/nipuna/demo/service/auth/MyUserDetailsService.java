@@ -1,4 +1,4 @@
-package com.nipuna.demo.service;
+package com.nipuna.demo.service.auth;
 
 import com.nipuna.demo.entity.User;
 import com.nipuna.demo.repository.UserRepository;

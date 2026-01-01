@@ -24,17 +24,20 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
     @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false, unique = true)
+    private String email;
 
     @Column(name = "full_name")
     private String fullName;
 
     @Column(name = "phone_number")
     private String phoneNumber;
+
+    @Column(columnDefinition = "TEXT")
+    private String address;
 
     @Column(nullable = false)
     private Boolean enabled = true;
@@ -54,5 +57,7 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-}
 
+    @Column(nullable = false)
+    private String role; // ROLE_CUSTOMER, ROLE_ADMIN, ROLE_TECHNICIAN
+}

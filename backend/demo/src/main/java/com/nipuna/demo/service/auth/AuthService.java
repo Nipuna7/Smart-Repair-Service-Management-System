@@ -1,4 +1,4 @@
-package com.nipuna.demo.service;
+package com.nipuna.demo.service.auth;
 
 import com.nipuna.demo.dto.AuthResponse;
 import com.nipuna.demo.dto.LoginRequest;
@@ -7,6 +7,7 @@ import com.nipuna.demo.entity.Role;
 import com.nipuna.demo.entity.User;
 import com.nipuna.demo.repository.RoleRepository;
 import com.nipuna.demo.repository.UserRepository;
+import com.nipuna.demo.service.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

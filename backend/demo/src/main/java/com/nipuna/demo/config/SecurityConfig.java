@@ -1,6 +1,6 @@
 package com.nipuna.demo.config;
 
-import com.nipuna.demo.service.MyUserDetailsService;
+import com.nipuna.demo.service.auth.MyUserDetailsService;
 import com.nipuna.demo.security.JwtAuthenticationEntryPoint;
 import com.nipuna.demo.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
