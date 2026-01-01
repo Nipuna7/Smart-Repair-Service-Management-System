@@ -1,4 +1,4 @@
-package com.nipuna.demo.controller;
+package com.nipuna.demo.controller.auth;
 
 import com.nipuna.demo.dto.AuthResponse;
 import com.nipuna.demo.dto.LoginRequest;

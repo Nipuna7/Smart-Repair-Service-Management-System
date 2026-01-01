@@ -58,6 +58,5 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
-    private String role; // ROLE_CUSTOMER, ROLE_ADMIN, ROLE_TECHNICIAN
+    // ROLE_CUSTOMER, ROLE_ADMIN, ROLE_TECHNICIAN
 }
