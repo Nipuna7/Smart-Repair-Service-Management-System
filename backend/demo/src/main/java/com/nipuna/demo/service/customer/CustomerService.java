@@ -1,6 +1,8 @@
 package com.nipuna.demo.service.customer;
 
 import com.nipuna.demo.dto.*;
+import com.nipuna.demo.dto.customer.CustomerProfileDto;
+import com.nipuna.demo.dto.customer.UpdateProfileDto;
 import com.nipuna.demo.entity.User;
 import com.nipuna.demo.repository.*;
 import lombok.RequiredArgsConstructor;

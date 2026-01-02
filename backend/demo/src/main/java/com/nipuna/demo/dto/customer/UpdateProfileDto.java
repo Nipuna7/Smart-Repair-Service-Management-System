@@ -1,4 +1,4 @@
-package com.nipuna.demo.dto;
+package com.nipuna.demo.dto.customer;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,11 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomerProfileDto {
-    private Long id;
-    private String username;
-    private String email;
+public class UpdateProfileDto {
     private String fullName;
+    private String email;
     private String phone;
     private String address;
 }

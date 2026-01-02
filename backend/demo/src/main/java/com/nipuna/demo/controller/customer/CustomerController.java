@@ -2,8 +2,8 @@ package com.nipuna.demo.controller.customer;
 
 import com.nipuna.demo.service.customer.CustomerService;
 import com.nipuna.demo.dto.ChangePasswordDto;
-import com.nipuna.demo.dto.CustomerProfileDto;
-import com.nipuna.demo.dto.UpdateProfileDto;
+import com.nipuna.demo.dto.customer.CustomerProfileDto;
+import com.nipuna.demo.dto.customer.UpdateProfileDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
