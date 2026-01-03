@@ -137,7 +137,7 @@ public class VehicalService {
         vehicleRepository.delete(vehicle);
     }
 
-    
+
     // Helper method to convert Vehicle entity to VehicleResponseDto
 
     private VehicleResponseDto mapToResponseDto(Vehicle vehicle) {

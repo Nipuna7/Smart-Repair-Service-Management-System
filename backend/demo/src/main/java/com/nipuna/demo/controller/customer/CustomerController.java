@@ -16,7 +16,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/customer")
 @CrossOrigin(origins = "*", maxAge = 3600)
-@PreAuthorize("hasRole('CUSTOMER')")
 @RequiredArgsConstructor
 public class CustomerController {
 
@@ -24,6 +23,7 @@ public class CustomerController {
 
     // ===== DASHBOARD =====
 
+    // Access the customer dashboard to verify authentication works
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(Authentication authentication) {
         Map<String, Object> response = new HashMap<>();
@@ -35,12 +35,14 @@ public class CustomerController {
 
     // ===== PROFILE MANAGEMENT =====
 
+    // Retrieve the logged-in customer's profile information
     @GetMapping("/profile")
     public ResponseEntity<CustomerProfileDto> getProfile(Authentication authentication) {
         CustomerProfileDto profile = customerService.getProfile(authentication);
         return ResponseEntity.ok(profile);
     }
 
+    // Update the logged-in customer's profile information
     @PutMapping("/profile")
     public ResponseEntity<CustomerProfileDto> updateProfile(
             @RequestBody UpdateProfileDto updateDto,
@@ -49,6 +51,7 @@ public class CustomerController {
         return ResponseEntity.ok(updated);
     }
 
+    // Change the logged-in customer's password
     @PutMapping("/profile/change-password")
     public ResponseEntity<Map<String, String>> changePassword(
             @RequestBody ChangePasswordDto passwordDto,
