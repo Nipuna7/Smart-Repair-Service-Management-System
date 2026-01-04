@@ -27,10 +27,10 @@ public class VehicalController {
 
 
      // Add a new vehicle for the authenticated customer
-     // POST /api/vehicles
+     // POST /api/vehicles/add
 
-    @PostMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/add")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
     public ResponseEntity<VehicleResponseDto> addVehicle(
             @Valid @RequestBody VehicleRequestDto vehicleRequestDto,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -47,10 +47,10 @@ public class VehicalController {
 
 
     // Get all vehicles for the authenticated customer
-    // GET /api/vehicles
+    // GET /api/vehicles/get
 
-    @GetMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @GetMapping("/get")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
     public ResponseEntity<List<VehicleResponseDto>> getMyVehicles(
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
@@ -69,7 +69,7 @@ public class VehicalController {
      // GET /api/vehicles/all
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('TECHNICIAN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('TECHNICIAN')")
     public ResponseEntity<List<VehicleResponseDto>> getAllVehicles() {
 
         // Call service to get all vehicles in the system
@@ -84,7 +84,7 @@ public class VehicalController {
      // GET /api/vehicles/{id}
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
+    @PreAuthorize("hasAuthority('CUSTOMER') or hasAuthority('ADMIN') or hasAuthority('TECHNICIAN')")
     public ResponseEntity<VehicleResponseDto> getVehicleById(
             @PathVariable("id") Long vehicleId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -101,7 +101,7 @@ public class VehicalController {
      // PUT /api/vehicles/{id}
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
     public ResponseEntity<VehicleResponseDto> updateVehicle(
             @PathVariable("id") Long vehicleId,
             @Valid @RequestBody VehicleRequestDto vehicleRequestDto,
@@ -122,7 +122,7 @@ public class VehicalController {
      // DELETE /api/vehicles/{id}
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
     public ResponseEntity<MessageResponse> deleteVehicle(
             @PathVariable("id") Long vehicleId,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -142,7 +142,7 @@ public class VehicalController {
      // GET /api/vehicles/customer/{customerId}
 
     @GetMapping("/customer/{customerId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('TECHNICIAN')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('TECHNICIAN')")
     public ResponseEntity<List<VehicleResponseDto>> getVehiclesByCustomerId(
             @PathVariable("customerId") Long customerId) {
 
@@ -153,5 +153,3 @@ public class VehicalController {
         return ResponseEntity.ok(vehicles);
     }
 }
-
-

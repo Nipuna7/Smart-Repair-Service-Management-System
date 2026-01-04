@@ -1,9 +1,9 @@
 package com.nipuna.demo.controller.auth;
 
-import com.nipuna.demo.dto.AuthResponse;
-import com.nipuna.demo.dto.LoginRequest;
+import com.nipuna.demo.dto.auth.AuthResponse;
+import com.nipuna.demo.dto.auth.LoginRequest;
 import com.nipuna.demo.dto.MessageResponse;
-import com.nipuna.demo.dto.RegisterRequest;
+import com.nipuna.demo.dto.auth.RegisterRequest;
 import com.nipuna.demo.service.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

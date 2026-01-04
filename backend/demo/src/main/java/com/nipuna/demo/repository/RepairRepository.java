@@ -1,6 +1,9 @@
 package com.nipuna.demo.repository;
 
 import com.nipuna.demo.entity.Repair;
+import com.nipuna.demo.entity.User;
+import com.nipuna.demo.entity.Vehicle;
+import com.nipuna.demo.entity.Repair.RepairStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,5 +18,13 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
     boolean existsByVehicleIdAndStatusIn(Long vehicleId, List<Repair.RepairStatus> statuses);
     List<Repair> findByCustomerIdAndStatusIn(Long customerId, List<Repair.RepairStatus> statuses);
     List<Repair> findByVehicleIdAndStatus(Long vehicleId, Repair.RepairStatus status);
-}
 
+    List<Repair> findByCustomer(User customer);
+
+    List<Repair> findByVehicle(Vehicle vehicle);
+
+    List<Repair> findByCustomerAndStatus(User customer, Repair.RepairStatus status);
+
+    // Check if vehicle has active repair
+    boolean existsByVehicleAndStatusIn(Vehicle vehicle, List<Repair.RepairStatus> statuses);
+}

@@ -1,8 +1,8 @@
 package com.nipuna.demo.service.auth;
 
-import com.nipuna.demo.dto.AuthResponse;
-import com.nipuna.demo.dto.LoginRequest;
-import com.nipuna.demo.dto.RegisterRequest;
+import com.nipuna.demo.dto.auth.AuthResponse;
+import com.nipuna.demo.dto.auth.LoginRequest;
+import com.nipuna.demo.dto.auth.RegisterRequest;
 import com.nipuna.demo.entity.Role;
 import com.nipuna.demo.entity.User;
 import com.nipuna.demo.repository.RoleRepository;

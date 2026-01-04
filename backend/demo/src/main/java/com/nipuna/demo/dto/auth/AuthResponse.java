@@ -1,4 +1,4 @@
-package com.nipuna.demo.dto;
+package com.nipuna.demo.dto.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

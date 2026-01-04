@@ -1,4 +1,4 @@
-package com.nipuna.demo.dto;
+package com.nipuna.demo.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
