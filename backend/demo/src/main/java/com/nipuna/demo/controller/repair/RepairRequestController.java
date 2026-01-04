@@ -1,59 +1,60 @@
 package com.nipuna.demo.controller.repair;
 
 import com.nipuna.demo.dto.repair.RepairRequestDto;
-import com.nipuna.demo.dto.RepairResponseDto;
+import com.nipuna.demo.dto.repair.RepairResponseDto;
+import com.nipuna.demo.dto.MessageResponse;
+import com.nipuna.demo.security.UserPrincipal;
 import com.nipuna.demo.service.repair.RepairRequestService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/repairs")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('CUSTOMER')")
 public class RepairRequestController {
 
     private final RepairRequestService repairRequestService;
 
-    /**
-     * Create a new repair request
-     * Endpoint: POST /api/repairs
-     *
-     * Business Logic (delegated to service):
-     * 1. Create repair request for customer's vehicle
-     * 2. Validate vehicle ownership
-     */
-    @PostMapping
-    public ResponseEntity<?> createRepairRequest(@Valid @RequestBody RepairRequestDto requestDto) {
-        try {
-            RepairResponseDto response = repairRequestService.createRepairRequest(requestDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse(e.getMessage()));
-        }
+    // ENDPOINT 1: Validate vehicle ownership
+    // GET /api/repairs/validate-ownership/{vehicleId}
+    // Accessible by: CUSTOMER
+    @GetMapping("/validate-ownership/{vehicleId}")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<MessageResponse> validateVehicleOwnership(
+            @PathVariable Long vehicleId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // Get authenticated customer ID
+        Long customerId = userPrincipal.getId();
+
+        // Call service to validate ownership
+        boolean isValid = repairRequestService.validateVehicleOwnership(vehicleId, customerId);
+
+        // Return success message if validation passes
+        return ResponseEntity.ok(new MessageResponse("Vehicle ownership validated successfully"));
     }
 
-    /**
-     * Error response wrapper
-     */
-    private static class ErrorResponse {
-        private String message;
+    // ENDPOINT 2: Create repair request
+    // POST /api/repairs
+    // Accessible by: CUSTOMER
+    @PostMapping
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<RepairResponseDto> createRepairRequest(
+            @Valid @RequestBody RepairRequestDto requestDto,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        public ErrorResponse(String message) {
-            this.message = message;
-        }
+        // Get authenticated customer ID
+        Long customerId = userPrincipal.getId();
 
-        public String getMessage() {
-            return message;
-        }
+        // Call service to create repair request (includes ownership validation)
+        RepairResponseDto response = repairRequestService.createRepairRequest(requestDto, customerId);
 
-        public void setMessage(String message) {
-            this.message = message;
-        }
+        // Return created repair with HTTP 201 status
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
