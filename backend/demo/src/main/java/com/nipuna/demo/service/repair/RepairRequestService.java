@@ -81,16 +81,38 @@ public class RepairRequestService {
     private RepairResponseDto convertToResponseDto(Repair repair) {
         return RepairResponseDto.builder()
                 .id(repair.getId())
+                // Vehicle information
                 .vehicleId(repair.getVehicle().getId())
                 .vehicleNumber(repair.getVehicle().getVehicleNumber())
-                .issueDescription(repair.getIssueDescription())
+                .vehicleMake(repair.getVehicle().getMake())
+                .vehicleModel(repair.getVehicle().getModel())
+                // Customer information
+                .customerId(repair.getCustomer().getId())
+                .customerName(repair.getCustomer().getFullName())
+                .customerEmail(repair.getCustomer().getEmail())
+                // Technician information (if assigned)
+                .technicianId(repair.getTechnician() != null ? repair.getTechnician().getId() : null)
+                .technicianName(repair.getTechnician() != null ? repair.getTechnician().getFullName() : null)
+                // Repair details
                 .serviceType(repair.getServiceType())
+                .issueDescription(repair.getIssueDescription())
                 .status(repair.getStatus())
                 .priority(repair.getPriority())
+                // Cost information
                 .estimatedCost(repair.getEstimatedCost())
                 .finalCost(repair.getFinalCost())
+                .paymentStatus(repair.getPaymentStatus())
+                // Approval status
+                .estimateApproved(repair.getEstimateApproved())
+                // Timestamps
                 .createdAt(repair.getCreatedAt())
+                .assignedAt(repair.getAssignedAt())
+                .inProgressAt(repair.getInProgressAt())
+                .completedAt(repair.getCompletedAt())
+                .cancelledAt(repair.getCancelledAt())
                 .updatedAt(repair.getUpdatedAt())
+                // Additional information
+                .cancellationReason(repair.getCancellationReason())
                 .build();
     }
 }
