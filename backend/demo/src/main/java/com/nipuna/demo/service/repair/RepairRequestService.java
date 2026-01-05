@@ -12,7 +12,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Service class for managing repair requests with two separate business logics
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
+
+// Service class for managing repair requests with business logic
 @Service
 @RequiredArgsConstructor
 public class RepairRequestService {
@@ -38,12 +43,78 @@ public class RepairRequestService {
         return true;
     }
 
-    // BUSINESS LOGIC 2: Create repair request for customer's vehicle
+    // BUSINESS LOGIC 2: Prevent multiple active repair requests for the same vehicle
+    // This method checks if the vehicle already has an active repair request
+    @Transactional(readOnly = true)
+    public void preventMultipleActiveRepairRequests(Long vehicleId) {
+        // Define active repair statuses
+        List<Repair.RepairStatus> activeStatuses = Arrays.asList(
+                Repair.RepairStatus.REQUESTED,
+                Repair.RepairStatus.ASSIGNED,
+                Repair.RepairStatus.IN_PROGRESS,
+                Repair.RepairStatus.ESTIMATE_SUBMITTED,
+                Repair.RepairStatus.APPROVED
+        );
+
+        // Check if vehicle has any active repair
+        boolean hasActiveRepair = repairRepository.existsByVehicleIdAndStatusIn(vehicleId, activeStatuses);
+
+        // Throw exception if active repair exists
+        if (hasActiveRepair) {
+            throw new RuntimeException("This vehicle already has an active repair request. Please wait until the current repair is completed.");
+        }
+    }
+
+    // BUSINESS LOGIC 3: Validate input (issue description, service type)
+    // This method validates the repair request input data
+    @Transactional(readOnly = true)
+    public void validateRepairRequestInput(RepairRequestDto requestDto) {
+        if (requestDto == null) {
+            throw new IllegalArgumentException("Request cannot be null");
+        }
+        if (requestDto.getServiceType() == null) {
+            throw new IllegalArgumentException("Service type is required");
+        }
+        if (requestDto.getIssueDescription() == null || requestDto.getIssueDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("Issue description is required and must not be empty");
+        }
+        if (requestDto.getIssueDescription().trim().length() < 10) {
+            throw new IllegalArgumentException("Issue description must be at least 10 characters long");
+        }
+        if (requestDto.getIssueDescription().trim().length() > 1000) {
+            throw new IllegalArgumentException("Issue description must not exceed 1000 characters");
+        }
+    }
+
+    // BUSINESS LOGIC 4: Auto-generate repair request number
+    // This method generates a unique repair request number (format: RR-YYYYMMDD-XXXX)
+    @Transactional
+    public String generateRepairRequestNumber() {
+        String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String prefix = "RR-" + datePart + "-";
+
+        // Get the count of all repair requests (use total count + 1 for sequence)
+        long totalRepairs = repairRepository.count();
+
+        // Generate sequence number with 4 digits (padded with zeros)
+        String sequenceNumber = String.format("%04d", totalRepairs + 1);
+
+        // Return complete repair request number
+        return prefix + sequenceNumber;
+    }
+
+    // BUSINESS LOGIC 5: Create repair request for customer's vehicle
     // This method creates a new repair request after validation
     @Transactional
     public RepairResponseDto createRepairRequest(RepairRequestDto requestDto, Long customerId) {
         // First validate vehicle ownership
         validateVehicleOwnership(requestDto.getVehicleId(), customerId);
+
+        // Validate input (issue description, service type)
+        validateRepairRequestInput(requestDto);
+
+        // Prevent multiple active repair requests for the same vehicle
+        preventMultipleActiveRepairRequests(requestDto.getVehicleId());
 
         // Find the vehicle by ID
         Vehicle vehicle = vehicleRepository.findById(requestDto.getVehicleId())
@@ -60,6 +131,9 @@ public class RepairRequestService {
         repair.setServiceType(requestDto.getServiceType());
         repair.setIssueDescription(requestDto.getIssueDescription());
         repair.setStatus(Repair.RepairStatus.REQUESTED);
+
+        // Step 4: Auto-generate repair request number
+        repair.setRepairRequestNumber(generateRepairRequestNumber());
 
         // Set priority - use provided or default to NORMAL
         if (requestDto.getPriority() != null) {
@@ -81,6 +155,7 @@ public class RepairRequestService {
     private RepairResponseDto convertToResponseDto(Repair repair) {
         return RepairResponseDto.builder()
                 .id(repair.getId())
+                .repairRequestNumber(repair.getRepairRequestNumber())
                 // Vehicle information
                 .vehicleId(repair.getVehicle().getId())
                 .vehicleNumber(repair.getVehicle().getVehicleNumber())

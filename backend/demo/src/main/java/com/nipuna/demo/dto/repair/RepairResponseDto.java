@@ -21,6 +21,9 @@ public class RepairResponseDto {
     // Unique identifier for the repair request
     private Long id;
 
+    // Auto-generated repair request number (e.g., RR-20260105-0001)
+    private String repairRequestNumber;
+
     //Vehicle information
     private Long vehicleId;
     private String vehicleNumber;
@@ -61,4 +64,3 @@ public class RepairResponseDto {
     // Additional information
     private String cancellationReason;
 }
-

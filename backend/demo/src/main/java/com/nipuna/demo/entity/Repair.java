@@ -20,6 +20,10 @@ public class Repair {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "repair_request_number", unique = true)
+    private String repairRequestNumber;
+
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", nullable = false)
     private Vehicle vehicle;
@@ -118,4 +122,3 @@ public class Repair {
         REFUNDED
     }
 }
-

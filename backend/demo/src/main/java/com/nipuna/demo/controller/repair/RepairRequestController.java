@@ -57,4 +57,45 @@ public class RepairRequestController {
         // Return created repair with HTTP 201 status
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    // ENDPOINT 3: Check if vehicle has an active repair (Business Logic 1)
+    // GET /api/repairs/vehicle/{vehicleId}/check-active
+    @GetMapping("/vehicle/{vehicleId}/check-active")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<MessageResponse> checkActiveRepair(
+            @PathVariable Long vehicleId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // Validate ownership first
+        repairRequestService.validateVehicleOwnership(vehicleId, userPrincipal.getId());
+
+        // Check for active repairs (will throw if exists)
+        repairRequestService.preventMultipleActiveRepairRequests(vehicleId);
+
+        return ResponseEntity.ok(new MessageResponse("No active repair exists for this vehicle"));
+    }
+
+    // ENDPOINT 4: Validate repair request input (Business Logic 2)
+    // POST /api/repairs/validate-input
+    @PostMapping("/validate-input")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<MessageResponse> validateInput(@Valid @RequestBody RepairRequestDto requestDto) {
+
+        // Validate input data
+        repairRequestService.validateRepairRequestInput(requestDto);
+
+        return ResponseEntity.ok(new MessageResponse("Repair request input is valid"));
+    }
+
+    // ENDPOINT 5: Generate a repair request number (Business Logic 3)
+    // GET /api/repairs/generate-request-number
+    @GetMapping("/generate-request-number")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<MessageResponse> generateRequestNumber() {
+
+        // Generate unique request number
+        String requestNumber = repairRequestService.generateRepairRequestNumber();
+
+        return ResponseEntity.ok(new MessageResponse(requestNumber));
+    }
 }
