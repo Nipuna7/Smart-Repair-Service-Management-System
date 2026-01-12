@@ -98,4 +98,124 @@ public class RepairRequestController {
 
         return ResponseEntity.ok(new MessageResponse(requestNumber));
     }
+
+    // ENDPOINT 6: Get recommended priority for a service type (Business Logic 5)
+    // GET /api/repairs/assign-priority/{serviceType}
+    @GetMapping("/assign-priority/{serviceType}")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<MessageResponse> getRecommendedPriority(@PathVariable String serviceType) {
+
+        // Convert string to enum
+        com.nipuna.demo.entity.Repair.ServiceType type;
+        try {
+            type = com.nipuna.demo.entity.Repair.ServiceType.valueOf(serviceType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Invalid service type: " + serviceType));
+        }
+
+        // Get recommended priority based on service type
+        com.nipuna.demo.entity.Repair.RepairPriority priority =
+                repairRequestService.assignPriorityByServiceType(type);
+
+        return ResponseEntity.ok(new MessageResponse(
+                "Recommended priority for " + serviceType + " is: " + priority.name()));
+    }
+
+    // ENDPOINT 7: Test initial status setup (Business Logic 4)
+    // GET /api/repairs/test-initial-status
+    @GetMapping("/test-initial-status")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<MessageResponse> testInitialStatus() {
+
+        // This endpoint demonstrates what status is set when creating a repair
+        return ResponseEntity.ok(new MessageResponse(
+                "Initial repair status will be set to: REQUESTED, Payment status: PENDING"));
+    }
+
+    // ENDPOINT 8: Get all repair requests for the authenticated customer (Business Logic 8)
+    // GET /api/repairs/my-repairs
+    @GetMapping("/my-repairs")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<java.util.List<RepairResponseDto>> getMyRepairRequests(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // Get authenticated customer ID
+        Long customerId = userPrincipal.getId();
+
+        // Get all repair requests for this customer
+        java.util.List<RepairResponseDto> repairs = repairRequestService.getCustomerRepairRequests(customerId);
+
+        return ResponseEntity.ok(repairs);
+    }
+
+    // ENDPOINT 9: Approve or reject cost estimate (Business Logic 9)
+    // PUT /api/repairs/{repairId}/approve-estimate
+    @PutMapping("/{repairId}/approve-estimate")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<RepairResponseDto> approveCostEstimate(
+            @PathVariable Long repairId,
+            @RequestParam boolean approved,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // Get authenticated customer ID
+        Long customerId = userPrincipal.getId();
+
+        // Handle cost estimate approval/rejection
+        RepairResponseDto response = repairRequestService.handleCostEstimateApproval(repairId, customerId, approved);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ENDPOINT 10: Cancel repair request (Business Logic 10)
+    // DELETE /api/repairs/{repairId}
+    @DeleteMapping("/{repairId}")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<RepairResponseDto> cancelRepairRequest(
+            @PathVariable Long repairId,
+            @RequestParam String cancellationReason,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // Get authenticated customer ID
+        Long customerId = userPrincipal.getId();
+
+        // Cancel repair request (only allowed for REQUESTED or ASSIGNED status)
+        RepairResponseDto response = repairRequestService.cancelRepairRequest(repairId, customerId, cancellationReason);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ENDPOINT 11: Get complete repair history for authenticated customer (Business Logic 12A)
+    // GET /api/repairs/history
+    @GetMapping("/history")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<java.util.List<RepairResponseDto>> getMyRepairHistory(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // Get authenticated customer ID
+        Long customerId = userPrincipal.getId();
+
+        // Get complete repair history for this customer
+        java.util.List<RepairResponseDto> repairs = repairRequestService.getRepairHistoryByCustomer(customerId);
+
+        return ResponseEntity.ok(repairs);
+    }
+
+    // ENDPOINT 12: Get repair history for a specific vehicle (Business Logic 12B)
+    // GET /api/repairs/vehicle/{vehicleId}/history
+    @GetMapping("/vehicle/{vehicleId}/history")
+    @PreAuthorize("hasAuthority('CUSTOMER')")
+    public ResponseEntity<java.util.List<RepairResponseDto>> getVehicleRepairHistory(
+            @PathVariable Long vehicleId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        // Get authenticated customer ID
+        Long customerId = userPrincipal.getId();
+
+        // Get repair history for specific vehicle (with ownership validation)
+        java.util.List<RepairResponseDto> repairs = repairRequestService.getRepairHistoryByVehicle(vehicleId, customerId);
+
+        return ResponseEntity.ok(repairs);
+    }
 }
+

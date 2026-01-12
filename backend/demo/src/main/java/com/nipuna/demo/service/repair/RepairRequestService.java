@@ -103,7 +103,47 @@ public class RepairRequestService {
         return prefix + sequenceNumber;
     }
 
-    // BUSINESS LOGIC 5: Create repair request for customer's vehicle
+    // BUSINESS LOGIC 5: Set initial status to REQUESTED and set created timestamp
+    // This method initializes the repair status to REQUESTED when created
+    public void setInitialRepairStatus(Repair repair) {
+        // Set initial status to REQUESTED
+        repair.setStatus(Repair.RepairStatus.REQUESTED);
+
+        // Set payment status to PENDING
+        repair.setPaymentStatus(Repair.PaymentStatus.PENDING);
+
+        // Created timestamp is automatically set by @CreationTimestamp annotation
+    }
+
+    // BUSINESS LOGIC 6: Assign repair priority based on service type
+    // This method automatically determines priority based on service type
+    public Repair.RepairPriority assignPriorityByServiceType(Repair.ServiceType serviceType) {
+        // Assign priority based on service type
+        switch (serviceType) {
+            case BREAKDOWN:
+                // Breakdowns are always URGENT - vehicle is not operational
+                return Repair.RepairPriority.URGENT;
+
+            case ENGINE_REPAIR:
+            case ELECTRICAL:
+                // Critical repairs are HIGH priority - safety and functionality issues
+                return Repair.RepairPriority.HIGH;
+
+            case BODY_REPAIR:
+            case TIRE_SERVICE:
+            case INSPECTION:
+                // Less critical repairs are NORMAL priority
+                return Repair.RepairPriority.NORMAL;
+
+            case REGULAR_SERVICE:
+            case OTHER:
+            default:
+                // Routine maintenance is LOW priority
+                return Repair.RepairPriority.LOW;
+        }
+    }
+
+    // BUSINESS LOGIC 7: Create repair request for customer's vehicle
     // This method creates a new repair request after validation
     @Transactional
     public RepairResponseDto createRepairRequest(RepairRequestDto requestDto, Long customerId) {
@@ -130,25 +170,180 @@ public class RepairRequestService {
         repair.setCustomer(customer);
         repair.setServiceType(requestDto.getServiceType());
         repair.setIssueDescription(requestDto.getIssueDescription());
-        repair.setStatus(Repair.RepairStatus.REQUESTED);
 
-        // Step 4: Auto-generate repair request number
+        // BUSINESS LOGIC 5: Set initial status to REQUESTED and set created timestamp
+        setInitialRepairStatus(repair);
+
+        // Auto-generate repair request number
         repair.setRepairRequestNumber(generateRepairRequestNumber());
 
-        // Set priority - use provided or default to NORMAL
+        // BUSINESS LOGIC 6: Assign repair priority based on service type
+        // If priority is provided by customer, use it; otherwise, auto-assign based on service type
         if (requestDto.getPriority() != null) {
             repair.setPriority(requestDto.getPriority());
         } else {
-            repair.setPriority(Repair.RepairPriority.NORMAL);
+            // Auto-assign priority based on service type
+            repair.setPriority(assignPriorityByServiceType(requestDto.getServiceType()));
         }
-
-        repair.setPaymentStatus(Repair.PaymentStatus.PENDING);
 
         // Save repair to database
         Repair savedRepair = repairRepository.save(repair);
 
         // Convert to DTO and return
         return convertToResponseDto(savedRepair);
+    }
+
+    // BUSINESS LOGIC 8: Allow customer to view ONLY their own repair requests
+    // This method retrieves all repair requests for a specific customer
+    @Transactional(readOnly = true)
+    public List<RepairResponseDto> getCustomerRepairRequests(Long customerId) {
+        // Verify customer exists
+        userRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + customerId));
+
+        // Find all repair requests for this customer
+        List<Repair> repairs = repairRepository.findByCustomerId(customerId);
+
+        // Convert to DTOs and return
+        return repairs.stream()
+                .map(this::convertToResponseDto)
+                .toList();
+    }
+
+    // BUSINESS LOGIC 9: Handle cost estimate approval/rejection
+    // This method allows customer to approve or reject cost estimate
+    @Transactional
+    public RepairResponseDto handleCostEstimateApproval(Long repairId, Long customerId, boolean approved) {
+        // Find the repair by ID
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RuntimeException("Repair not found with id: " + repairId));
+
+        // Verify the repair belongs to the customer
+        if (!repair.getCustomer().getId().equals(customerId)) {
+            throw new RuntimeException("Access denied. You can only approve/reject your own repair estimates");
+        }
+
+        // Verify repair is in ESTIMATE_SUBMITTED status
+        if (repair.getStatus() != Repair.RepairStatus.ESTIMATE_SUBMITTED) {
+            throw new RuntimeException("Cannot approve/reject estimate. Repair status must be ESTIMATE_SUBMITTED");
+        }
+
+        // Verify estimated cost is set
+        if (repair.getEstimatedCost() == null) {
+            throw new RuntimeException("No cost estimate has been submitted for this repair");
+        }
+
+        // Handle approval or rejection
+        if (approved) {
+            // Customer approved the estimate
+            repair.setEstimateApproved(true);
+            repair.setStatus(Repair.RepairStatus.APPROVED);
+        } else {
+            // Customer rejected the estimate
+            repair.setEstimateApproved(false);
+            repair.setStatus(Repair.RepairStatus.CANCELLED);
+            repair.setCancellationReason("Customer rejected the cost estimate");
+            repair.setCancelledAt(java.time.LocalDateTime.now());
+        }
+
+        // Save updated repair
+        Repair updatedRepair = repairRepository.save(repair);
+
+        // Convert to DTO and return
+        return convertToResponseDto(updatedRepair);
+    }
+
+    // BUSINESS LOGIC 10: Allow cancellation ONLY when status = REQUESTED or ASSIGNED
+    // This method allows customer to cancel a repair request only in early stages
+    @Transactional
+    public RepairResponseDto cancelRepairRequest(Long repairId, Long customerId, String cancellationReason) {
+        // Find the repair by ID
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RuntimeException("Repair not found with id: " + repairId));
+
+        // Verify the repair belongs to the customer
+        if (!repair.getCustomer().getId().equals(customerId)) {
+            throw new RuntimeException("Access denied. You can only cancel your own repair requests");
+        }
+
+        // Check if repair can be cancelled (only REQUESTED or ASSIGNED status allowed)
+        if (repair.getStatus() != Repair.RepairStatus.REQUESTED &&
+            repair.getStatus() != Repair.RepairStatus.ASSIGNED) {
+            throw new RuntimeException(
+                "Cannot cancel repair. Cancellation is only allowed for REQUESTED or ASSIGNED status. " +
+                "Current status: " + repair.getStatus()
+            );
+        }
+
+        // Validate cancellation reason
+        if (cancellationReason == null || cancellationReason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Cancellation reason is required");
+        }
+
+        // Update repair to cancelled status
+        repair.setStatus(Repair.RepairStatus.CANCELLED);
+        repair.setCancellationReason(cancellationReason.trim());
+        repair.setCancelledAt(java.time.LocalDateTime.now());
+
+        // Save updated repair
+        Repair updatedRepair = repairRepository.save(repair);
+
+        // Convert to DTO and return
+        return convertToResponseDto(updatedRepair);
+    }
+
+    // BUSINESS LOGIC 11: Lock repair data once status = COMPLETED
+    // This method validates that completed repairs cannot be modified
+    public void validateRepairNotCompleted(Repair repair) {
+        // Check if repair is completed or delivered (locked statuses)
+        if (repair.getStatus() == Repair.RepairStatus.COMPLETED ||
+            repair.getStatus() == Repair.RepairStatus.DELIVERED) {
+            throw new RuntimeException(
+                "Cannot modify repair. This repair is locked because it has been completed. " +
+                "Status: " + repair.getStatus() + ", Completed at: " + repair.getCompletedAt()
+            );
+        }
+    }
+
+    // BUSINESS LOGIC 12A: Expose method for fetching repair history per customer
+    // This method retrieves all repair requests (including completed/cancelled) for a customer
+    @Transactional(readOnly = true)
+    public List<RepairResponseDto> getRepairHistoryByCustomer(Long customerId) {
+        // Verify customer exists
+        userRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + customerId));
+
+        // Find all repair requests for this customer (all statuses - complete history)
+        List<Repair> repairs = repairRepository.findByCustomerId(customerId);
+
+        // Sort by creation date (newest first) and convert to DTOs
+        return repairs.stream()
+                .sorted((r1, r2) -> r2.getCreatedAt().compareTo(r1.getCreatedAt()))
+                .map(this::convertToResponseDto)
+                .toList();
+    }
+
+    // BUSINESS LOGIC 12B: Expose method for fetching repair history per vehicle
+    // This method retrieves all repair requests for a specific vehicle
+    @Transactional(readOnly = true)
+    public List<RepairResponseDto> getRepairHistoryByVehicle(Long vehicleId, Long customerId) {
+        // Find the vehicle by ID
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found with id: " + vehicleId));
+
+        // Verify the vehicle belongs to the customer
+        if (!vehicle.getCustomer().getId().equals(customerId)) {
+            throw new RuntimeException("Access denied. You can only view repair history for your own vehicles");
+        }
+
+        // Find all repair requests for this vehicle (all statuses - complete history)
+        List<Repair> repairs = repairRepository.findByVehicleId(vehicleId);
+
+        // Sort by creation date (newest first) and convert to DTOs
+        return repairs.stream()
+                .sorted((r1, r2) -> r2.getCreatedAt().compareTo(r1.getCreatedAt()))
+                .map(this::convertToResponseDto)
+                .toList();
     }
 
     // Helper method to convert Repair entity to RepairResponseDto
