@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -417,6 +418,247 @@ public class CustomerService {
                 .sorted((r1, r2) -> r2.getCreatedAt().compareTo(r1.getCreatedAt()))
                 .map(this::mapToRepairResponseDto)
                 .collect(Collectors.toList());
+    }
+
+    // ===== REPAIR TRACKING SERVICE =====
+
+    // Get current repair status with full details
+    @Transactional(readOnly = true)
+    public RepairResponseDto getRepairStatus(Long repairId, Authentication authentication) {
+        User customer = getAuthenticatedCustomer(authentication);
+
+        // Find the repair by ID
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RuntimeException("Repair not found with id: " + repairId));
+
+        // Verify the repair belongs to the customer
+        if (!repair.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("Access denied. You can only view your own repair status");
+        }
+
+        // Convert to DTO with all tracking information
+        return mapToRepairResponseDto(repair);
+    }
+
+    // Get repair timeline with all status transitions
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRepairTimeline(Long repairId, Authentication authentication) {
+        User customer = getAuthenticatedCustomer(authentication);
+
+        // Find the repair by ID
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RuntimeException("Repair not found with id: " + repairId));
+
+        // Verify the repair belongs to the customer
+        if (!repair.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("Access denied. You can only view your own repair timeline");
+        }
+
+        // Build timeline with all timestamps
+        Map<String, Object> timeline = new java.util.HashMap<>();
+        timeline.put("repairId", repair.getId());
+        timeline.put("repairRequestNumber", repair.getRepairRequestNumber());
+        timeline.put("currentStatus", repair.getStatus());
+
+        // Add timeline events
+        List<Map<String, Object>> events = new java.util.ArrayList<>();
+
+        // Event 1: Created/Requested
+        if (repair.getCreatedAt() != null) {
+            Map<String, Object> event = new java.util.HashMap<>();
+            event.put("status", "REQUESTED");
+            event.put("timestamp", repair.getCreatedAt());
+            event.put("description", "Repair request created");
+            events.add(event);
+        }
+
+        // Event 2: Assigned to technician
+        if (repair.getAssignedAt() != null) {
+            Map<String, Object> event = new java.util.HashMap<>();
+            event.put("status", "ASSIGNED");
+            event.put("timestamp", repair.getAssignedAt());
+            event.put("description", "Assigned to technician: " +
+                    (repair.getTechnician() != null ? repair.getTechnician().getFullName() : "Unknown"));
+            events.add(event);
+        }
+
+        // Event 3: Work in progress
+        if (repair.getInProgressAt() != null) {
+            Map<String, Object> event = new java.util.HashMap<>();
+            event.put("status", "IN_PROGRESS");
+            event.put("timestamp", repair.getInProgressAt());
+            event.put("description", "Repair work started");
+            events.add(event);
+        }
+
+        // Event 4: Estimate submitted
+        if (repair.getStatus() == Repair.RepairStatus.ESTIMATE_SUBMITTED ||
+            repair.getEstimatedCost() != null) {
+            Map<String, Object> event = new java.util.HashMap<>();
+            event.put("status", "ESTIMATE_SUBMITTED");
+            event.put("timestamp", repair.getUpdatedAt());
+            event.put("description", "Cost estimate submitted: $" + repair.getEstimatedCost());
+            events.add(event);
+        }
+
+        // Event 5: Estimate approved
+        if (repair.getStatus() == Repair.RepairStatus.APPROVED) {
+            Map<String, Object> event = new java.util.HashMap<>();
+            event.put("status", "APPROVED");
+            event.put("timestamp", repair.getUpdatedAt());
+            event.put("description", "Cost estimate approved by customer");
+            events.add(event);
+        }
+
+        // Event 6: Completed
+        if (repair.getCompletedAt() != null) {
+            Map<String, Object> event = new java.util.HashMap<>();
+            event.put("status", "COMPLETED");
+            event.put("timestamp", repair.getCompletedAt());
+            event.put("description", "Repair work completed");
+            events.add(event);
+        }
+
+        // Event 7: Cancelled
+        if (repair.getCancelledAt() != null) {
+            Map<String, Object> event = new java.util.HashMap<>();
+            event.put("status", "CANCELLED");
+            event.put("timestamp", repair.getCancelledAt());
+            event.put("description", "Repair cancelled: " + repair.getCancellationReason());
+            events.add(event);
+        }
+
+        timeline.put("events", events);
+        timeline.put("totalEvents", events.size());
+
+        return timeline;
+    }
+
+    // Get assigned technician information
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAssignedTechnician(Long repairId, Authentication authentication) {
+        User customer = getAuthenticatedCustomer(authentication);
+
+        // Find the repair by ID
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RuntimeException("Repair not found with id: " + repairId));
+
+        // Verify the repair belongs to the customer
+        if (!repair.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("Access denied. You can only view your own repair information");
+        }
+
+        // Build technician information
+        Map<String, Object> technicianInfo = new java.util.HashMap<>();
+
+        if (repair.getTechnician() != null) {
+            technicianInfo.put("isAssigned", true);
+            technicianInfo.put("technicianId", repair.getTechnician().getId());
+            technicianInfo.put("technicianName", repair.getTechnician().getFullName());
+            technicianInfo.put("technicianEmail", repair.getTechnician().getEmail());
+            technicianInfo.put("assignedAt", repair.getAssignedAt());
+        } else {
+            technicianInfo.put("isAssigned", false);
+            technicianInfo.put("message", "No technician assigned yet");
+        }
+
+        technicianInfo.put("repairId", repair.getId());
+        technicianInfo.put("repairStatus", repair.getStatus());
+
+        return technicianInfo;
+    }
+
+    // ===== COST ESTIMATION & APPROVAL SERVICE =====
+
+    // Get repair cost estimate details
+    @Transactional(readOnly = true)
+    public Map<String, Object> getRepairEstimate(Long repairId, Authentication authentication) {
+        User customer = getAuthenticatedCustomer(authentication);
+
+        // Find the repair by ID
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RuntimeException("Repair not found with id: " + repairId));
+
+        // Verify the repair belongs to the customer
+        if (!repair.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("Access denied. You can only view your own repair estimates");
+        }
+
+        // Build estimate information
+        Map<String, Object> estimateInfo = new java.util.HashMap<>();
+        estimateInfo.put("repairId", repair.getId());
+        estimateInfo.put("repairRequestNumber", repair.getRepairRequestNumber());
+        estimateInfo.put("vehicleNumber", repair.getVehicle().getVehicleNumber());
+        estimateInfo.put("serviceType", repair.getServiceType());
+        estimateInfo.put("issueDescription", repair.getIssueDescription());
+
+        // Cost information
+        if (repair.getEstimatedCost() != null) {
+            estimateInfo.put("hasEstimate", true);
+            estimateInfo.put("estimatedCost", repair.getEstimatedCost());
+            estimateInfo.put("estimateStatus", repair.getStatus());
+            estimateInfo.put("estimateApproved", repair.getEstimateApproved());
+
+            if (repair.getFinalCost() != null) {
+                estimateInfo.put("finalCost", repair.getFinalCost());
+            }
+        } else {
+            estimateInfo.put("hasEstimate", false);
+            estimateInfo.put("message", "Cost estimate not yet submitted by technician");
+        }
+
+        // Payment information
+        estimateInfo.put("paymentStatus", repair.getPaymentStatus());
+
+        return estimateInfo;
+    }
+
+    // Approve cost estimate (simplified version that calls existing method)
+    @Transactional
+    public RepairResponseDto approveEstimate(Long repairId, Authentication authentication) {
+        return handleCostEstimateApproval(repairId, true, authentication);
+    }
+
+    // Reject cost estimate (simplified version that calls existing method)
+    @Transactional
+    public RepairResponseDto rejectEstimate(Long repairId, Authentication authentication) {
+        return handleCostEstimateApproval(repairId, false, authentication);
+    }
+
+    // Get final cost after repair completion
+    @Transactional(readOnly = true)
+    public Map<String, Object> getFinalCost(Long repairId, Authentication authentication) {
+        User customer = getAuthenticatedCustomer(authentication);
+
+        // Find the repair by ID
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RuntimeException("Repair not found with id: " + repairId));
+
+        // Verify the repair belongs to the customer
+        if (!repair.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("Access denied. You can only view your own repair costs");
+        }
+
+        // Build final cost information
+        Map<String, Object> costInfo = new java.util.HashMap<>();
+        costInfo.put("repairId", repair.getId());
+        costInfo.put("repairRequestNumber", repair.getRepairRequestNumber());
+        costInfo.put("status", repair.getStatus());
+
+        if (repair.getFinalCost() != null) {
+            costInfo.put("hasFinalCost", true);
+            costInfo.put("estimatedCost", repair.getEstimatedCost());
+            costInfo.put("finalCost", repair.getFinalCost());
+            costInfo.put("costDifference", repair.getFinalCost().subtract(repair.getEstimatedCost()));
+            costInfo.put("paymentStatus", repair.getPaymentStatus());
+            costInfo.put("completedAt", repair.getCompletedAt());
+        } else {
+            costInfo.put("hasFinalCost", false);
+            costInfo.put("estimatedCost", repair.getEstimatedCost());
+            costInfo.put("message", "Final cost not yet available. Repair is still in progress.");
+        }
+
+        return costInfo;
     }
 
     // ===== PRIVATE HELPER METHODS =====

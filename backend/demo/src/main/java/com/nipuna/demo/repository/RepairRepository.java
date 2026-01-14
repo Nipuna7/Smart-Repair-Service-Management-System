@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface RepairRepository extends JpaRepository<Repair, Long> {
     List<Repair> findByCustomerId(Long customerId);
     List<Repair> findByVehicleId(Long vehicleId);
+    List<Repair> findByTechnicianId(Long technicianId);
     Optional<Repair> findByIdAndCustomerId(Long id, Long customerId);
     boolean existsByVehicleIdAndStatusIn(Long vehicleId, List<Repair.RepairStatus> statuses);
     List<Repair> findByCustomerIdAndStatusIn(Long customerId, List<Repair.RepairStatus> statuses);

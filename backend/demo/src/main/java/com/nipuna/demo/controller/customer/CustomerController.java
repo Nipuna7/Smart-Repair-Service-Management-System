@@ -185,6 +185,73 @@ public class CustomerController {
         return ResponseEntity.ok(repairs);
     }
 
+    // ===== REPAIR TRACKING =====
+
+    // Get current repair status
+    @GetMapping("/repairs/{id}/status")
+    public ResponseEntity<RepairResponseDto> getRepairStatus(
+            @PathVariable Long id,
+            Authentication authentication) {
+        RepairResponseDto status = customerService.getRepairStatus(id, authentication);
+        return ResponseEntity.ok(status);
+    }
+
+    // Get repair timeline
+    @GetMapping("/repairs/{id}/timeline")
+    public ResponseEntity<Map<String, Object>> getRepairTimeline(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> timeline = customerService.getRepairTimeline(id, authentication);
+        return ResponseEntity.ok(timeline);
+    }
+
+    // Get assigned technician
+    @GetMapping("/repairs/{id}/technician")
+    public ResponseEntity<Map<String, Object>> getAssignedTechnician(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> technician = customerService.getAssignedTechnician(id, authentication);
+        return ResponseEntity.ok(technician);
+    }
+
+    // ===== COST ESTIMATION & APPROVAL =====
+
+    // Get repair cost estimate
+    @GetMapping("/repairs/{id}/estimate")
+    public ResponseEntity<Map<String, Object>> getRepairEstimate(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> estimate = customerService.getRepairEstimate(id, authentication);
+        return ResponseEntity.ok(estimate);
+    }
+
+    // Approve cost estimate
+    @PostMapping("/repairs/{id}/approve")
+    public ResponseEntity<RepairResponseDto> approveEstimate(
+            @PathVariable Long id,
+            Authentication authentication) {
+        RepairResponseDto response = customerService.approveEstimate(id, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Reject cost estimate
+    @PostMapping("/repairs/{id}/reject")
+    public ResponseEntity<RepairResponseDto> rejectEstimate(
+            @PathVariable Long id,
+            Authentication authentication) {
+        RepairResponseDto response = customerService.rejectEstimate(id, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Get final cost
+    @GetMapping("/repairs/{id}/final-cost")
+    public ResponseEntity<Map<String, Object>> getFinalCost(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> finalCost = customerService.getFinalCost(id, authentication);
+        return ResponseEntity.ok(finalCost);
+    }
+
     // ===== PAYMENT =====
 
     // ...existing payment endpoints (to be implemented later)...
