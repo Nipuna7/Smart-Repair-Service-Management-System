@@ -79,6 +79,12 @@ public class Repair {
     @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     private String cancellationReason;
 
+    @Column(name = "diagnosis_details", columnDefinition = "TEXT")
+    private String diagnosisDetails;
+
+    @Column(name = "repair_notes", columnDefinition = "TEXT")
+    private String repairNotes;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -805,6 +805,9 @@ public class CustomerService {
                 .updatedAt(repair.getUpdatedAt())
                 // Additional information
                 .cancellationReason(repair.getCancellationReason())
+                // Diagnosis and notes
+                .diagnosisDetails(repair.getDiagnosisDetails())
+                .repairNotes(repair.getRepairNotes())
                 .build();
     }
 

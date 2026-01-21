@@ -63,4 +63,8 @@ public class RepairResponseDto {
 
     // Additional information
     private String cancellationReason;
+
+    // Diagnosis and notes (technician)
+    private String diagnosisDetails;
+    private String repairNotes;
 }

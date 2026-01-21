@@ -77,6 +77,132 @@ public class TechnicianController {
         return ResponseEntity.ok(contact);
     }
 
+    // ===== REPAIR DIAGNOSIS & NOTES =====
+
+    // Add diagnosis details to a repair
+    @PostMapping("/repairs/{id}/diagnosis")
+    public ResponseEntity<RepairResponseDto> addDiagnosisDetails(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+        String diagnosisDetails = request.get("diagnosisDetails");
+        RepairResponseDto response = technicianService.addDiagnosisDetails(id, diagnosisDetails, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Add repair notes
+    @PostMapping("/repairs/{id}/notes")
+    public ResponseEntity<RepairResponseDto> addRepairNotes(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+        String repairNotes = request.get("repairNotes");
+        RepairResponseDto response = technicianService.addRepairNotes(id, repairNotes, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Get diagnosis details
+    @GetMapping("/repairs/{id}/diagnosis")
+    public ResponseEntity<Map<String, Object>> getDiagnosisDetails(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> diagnosis = technicianService.getDiagnosisDetails(id, authentication);
+        return ResponseEntity.ok(diagnosis);
+    }
+
+    // Get repair notes
+    @GetMapping("/repairs/{id}/notes")
+    public ResponseEntity<Map<String, Object>> getRepairNotes(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> notes = technicianService.getRepairNotes(id, authentication);
+        return ResponseEntity.ok(notes);
+    }
+
+    // ===== COST ESTIMATION =====
+
+    // Submit cost estimate for a repair
+    @PostMapping("/repairs/{id}/estimate")
+    public ResponseEntity<RepairResponseDto> submitCostEstimate(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        java.math.BigDecimal estimatedCost = new java.math.BigDecimal(request.get("estimatedCost").toString());
+        RepairResponseDto response = technicianService.submitCostEstimate(id, estimatedCost, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Update cost estimate (if customer rejected)
+    @PutMapping("/repairs/{id}/estimate")
+    public ResponseEntity<RepairResponseDto> updateCostEstimate(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        java.math.BigDecimal newEstimatedCost = new java.math.BigDecimal(request.get("estimatedCost").toString());
+        RepairResponseDto response = technicianService.updateCostEstimate(id, newEstimatedCost, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Start repair work (mark as IN_PROGRESS)
+    @PostMapping("/repairs/{id}/start-work")
+    public ResponseEntity<RepairResponseDto> startRepairWork(
+            @PathVariable Long id,
+            Authentication authentication) {
+        RepairResponseDto response = technicianService.startRepairWork(id, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Check customer approval status
+    @GetMapping("/repairs/{id}/approval-status")
+    public ResponseEntity<Map<String, Object>> checkApprovalStatus(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> status = technicianService.checkApprovalStatus(id, authentication);
+        return ResponseEntity.ok(status);
+    }
+
+    // ===== REPAIR STATUS UPDATE =====
+
+    // Update repair status from ASSIGNED/APPROVED to IN_PROGRESS
+    @PutMapping("/repairs/{id}/status/in-progress")
+    public ResponseEntity<RepairResponseDto> updateStatusToInProgress(
+            @PathVariable Long id,
+            Authentication authentication) {
+        RepairResponseDto response = technicianService.updateStatusToInProgress(id, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Update repair status to WAITING_FOR_PARTS
+    @PutMapping("/repairs/{id}/status/waiting-for-parts")
+    public ResponseEntity<RepairResponseDto> updateStatusToWaitingForParts(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request,
+            Authentication authentication) {
+        String reason = request.get("reason");
+        RepairResponseDto response = technicianService.updateStatusToWaitingForParts(id, reason, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Mark repair as COMPLETED
+    @PutMapping("/repairs/{id}/status/completed")
+    public ResponseEntity<RepairResponseDto> markRepairAsCompleted(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
+        java.math.BigDecimal finalCost = new java.math.BigDecimal(request.get("finalCost").toString());
+        RepairResponseDto response = technicianService.markRepairAsCompleted(id, finalCost, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    // Get repair status workflow (current status and allowed next actions)
+    @GetMapping("/repairs/{id}/status/workflow")
+    public ResponseEntity<Map<String, Object>> getRepairStatusWorkflow(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Map<String, Object> workflow = technicianService.getRepairStatusWorkflow(id, authentication);
+        return ResponseEntity.ok(workflow);
+    }
+
     // ===== LEGACY ENDPOINT (Keep for compatibility) =====
 
     // Get assigned tasks (alias for assigned repairs)
