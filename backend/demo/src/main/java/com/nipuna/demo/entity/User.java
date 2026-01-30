@@ -42,6 +42,11 @@ public class User {
     @Column(nullable = false)
     private Boolean enabled = true;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_skills", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "skill")
+    private Set<String> skills = new HashSet<>();
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
